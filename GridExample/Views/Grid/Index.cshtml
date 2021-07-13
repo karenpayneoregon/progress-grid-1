@@ -1,0 +1,70 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+@(Html.Kendo().Grid<GridExample.Models.Produce>()
+            .Name("grid")
+            .Columns(columns =>
+            {
+                columns.Bound(o => o.Apples).Width(200);
+                columns.Bound(o => o.Oranges).Width(200);
+                columns.Bound(o => o.TotalAmount)
+                    .ClientTemplate("#=calcColumns(data)#")
+                    .Title("Total Amount")
+                    .Editable("notEditable")
+                    .ClientFooterTemplate("Grand Total: #=sum#");
+                columns.Command(command => command.Destroy()).Width(250);
+            })
+            .ToolBar(toolbar => {
+                toolbar.Create();
+                toolbar.Save();
+            })
+            .Editable(editable => editable.Mode(GridEditMode.InCell))
+            .DataSource(dataSource => dataSource
+                .Ajax()
+                .Batch(true)
+                .PageSize(5)
+                .ServerOperation(false)
+                .Model(model => {
+                    model.Id(p => p.ID);
+                    model.Field(p => p.TotalAmount);
+                })
+                .Aggregates(aggregates => {
+                    aggregates.Add(p => p.TotalAmount).Sum();
+                })
+                .Read(read => read.Action("Grid_Read", "Grid"))
+                .Create(create => create.Action("Grid_Create", "Grid"))
+                .Update(update => update.Action("Grid_Update", "Grid"))
+                .Destroy(update => update.Action("Grid_Delete", "Grid"))
+            )
+            .Events(e => e.Save("onSave"))
+            .Pageable()
+            .Sortable()
+    )
+
+<script>
+    function notEditable(e) {
+        return false;
+    }
+
+    function onSave(e) {
+        if (e.values.hasOwnProperty("Apples") ||
+            e.values.hasOwnProperty("Oranges")) {
+            var totalSpan = e.container.closest("TR").find(".totalSpan");
+            if (e.values.hasOwnProperty("Apples")) {
+                totalSpan.html(e.values.Apples * e.model.Oranges);
+                e.model.set("TotalAmount", totalSpan.html());
+            }
+            else {
+                totalSpan.html(e.values.Oranges * e.model.Apples);
+                e.model.set("TotalAmount", totalSpan.html());
+
+            }
+        }
+    }
+
+    function calcColumns(e) {
+        var result = e.Oranges * e.Apples;
+        return "<span class='totalSpan'>" + result + "</span>";
+    }
+</script>
